@@ -1,0 +1,18 @@
+[
+  {
+    "ip": "192.0.2.10",
+    "timestamp": "1791968400",
+    "ports": [
+      {"port": 23, "proto": "tcp", "status": "open"},
+      {"port": 80, "proto": "tcp", "status": "open"},
+      {"port": 443, "proto": "tcp", "status": "closed"}
+    ]
+  },
+  {
+    "ip": "192.0.2.20",
+    "timestamp": "1791968400",
+    "ports": [
+      {"port": 22, "proto": "tcp", "status": "open"}
+    ]
+  }
+]

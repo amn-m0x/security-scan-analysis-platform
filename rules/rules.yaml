@@ -53,3 +53,22 @@ rules:
         value: "X-Frame-Options"
     recommendations:
       - "Review and configure protection against framing."
+
+  - name: "Potential Telnet exposure"
+    category: "exposed_service"
+    risk_score: 7.5
+    conditions:
+      - field: "source"
+        operator: "eq"
+        value: "masscan"
+      - field: "port"
+        operator: "eq"
+        value: 23
+      - field: "protocol"
+        operator: "eq"
+        value: "tcp"
+      - field: "state"
+        operator: "eq"
+        value: "open"
+    recommendations:
+      - "Verify the service on TCP port 23 and restrict unnecessary access."
