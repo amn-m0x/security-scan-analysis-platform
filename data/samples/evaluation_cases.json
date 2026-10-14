@@ -1,0 +1,68 @@
+{
+  "dataset_type": "synthetic_manual_labels",
+  "label_definition": "Security alert required by the test scenario, not confirmed intrusion",
+  "cases": [
+    {
+      "id": "telnet",
+      "actual": true,
+      "reason": "Unnecessary Telnet exposure requires remediation.",
+      "findings": [
+        {"service": "telnet", "port": 23}
+      ]
+    },
+    {
+      "id": "sql-injection",
+      "actual": true,
+      "reason": "The scenario assumes a verified SQL injection finding.",
+      "findings": [
+        {"cwe": "CWE-89", "description": "Verified SQL injection"}
+      ]
+    },
+    {
+      "id": "exposed-git",
+      "actual": true,
+      "reason": "Git metadata is publicly accessible in this scenario.",
+      "findings": [
+        {"description": "Public access to /.git/HEAD confirmed"}
+      ]
+    },
+    {
+      "id": "expected-ssh",
+      "actual": false,
+      "reason": "SSH is an approved service with no reported weakness.",
+      "findings": [
+        {"service": "ssh", "port": 22}
+      ]
+    },
+    {
+      "id": "header-only",
+      "actual": false,
+      "reason": "This isolated issue is below the test policy alert threshold.",
+      "findings": [
+        {"description": "Missing X-Frame-Options header"}
+      ]
+    },
+    {
+      "id": "empty-report",
+      "actual": false,
+      "reason": "No alert evidence is supplied in this synthetic case.",
+      "findings": []
+    },
+    {
+      "id": "git-access-blocked",
+      "actual": false,
+      "reason": "The text mentions .git but explicitly states access is blocked.",
+      "findings": [
+        {"description": "Access to /.git/ is blocked; no metadata exposed"}
+      ]
+    },
+    {
+      "id": "expired-certificate",
+      "actual": true,
+      "reason": "An expired production TLS certificate requires an alert in this test policy.",
+      "findings": [
+        {"description": "Production TLS certificate has expired"}
+      ]
+    }
+  ]
+}
