@@ -1,0 +1,17 @@
+{
+  "scan_id": "demo-001",
+  "timestamp": "2026-10-14T09:00:00Z",
+  "target": "192.0.2.10",
+  "findings": [
+    {
+      "source": "nmap",
+      "type": "service",
+      "port": 23,
+      "protocol": "tcp",
+      "state": "open",
+      "service": "telnet",
+      "severity": "critical",
+      "description": "Demo finding: Telnet service is open"
+    }
+  ]
+}
