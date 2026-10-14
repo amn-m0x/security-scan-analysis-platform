@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap">
+  <host>
+    <status state="up"/>
+    <address addr="192.0.2.10" addrtype="ipv4"/>
+    <hostnames>
+      <hostname name="demo-server" type="user"/>
+    </hostnames>
+    <ports>
+      <port protocol="tcp" portid="23">
+        <state state="open"/>
+        <service name="telnet" product="Demo Telnet"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open"/>
+        <service name="http" product="Apache httpd" version="2.2.34"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="closed"/>
+        <service name="https"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>
