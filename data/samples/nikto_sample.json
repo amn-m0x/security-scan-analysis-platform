@@ -1,0 +1,19 @@
+{
+  "host": "192.0.2.10",
+  "ip": "192.0.2.10",
+  "port": 80,
+  "vulnerabilities": [
+    {
+      "id": "demo-001",
+      "method": "GET",
+      "url": "/.git/HEAD",
+      "msg": "Demo finding: exposed .git metadata"
+    },
+    {
+      "id": "demo-002",
+      "method": "GET",
+      "url": "/",
+      "msg": "Demo finding: missing X-Frame-Options header"
+    }
+  ]
+}
