@@ -1,74 +1,71 @@
 threshold: 7.0
-
 rules:
-  - name: "Open Telnet"
-    category: "unauthorized_access"
-    risk_score: 9.0
-    conditions:
-      - field: "service"
-        operator: "eq"
-        value: "telnet"
-    recommendations:
-      - "Disable Telnet and use SSH."
-
-  - name: "Potential SQL injection"
-    category: "data_breach"
-    risk_score: 9.5
-    conditions:
-      - field: "cwe"
-        operator: "eq"
-        value: "CWE-89"
-    recommendations:
-      - "Verify the finding and use parameterized queries."
-
-  - name: "Legacy Apache"
-    category: "vulnerable_component"
-    risk_score: 7.5
-    conditions:
-      - field: "product"
-        operator: "contains"
-        value: "apache"
-      - field: "version"
-        operator: "contains"
-        value: "2.2."
-    recommendations:
-      - "Verify the installed version and upgrade Apache."
-
-  - name: "Exposed Git metadata"
-    category: "information_disclosure"
-    risk_score: 8.0
-    conditions:
-      - field: "description"
-        operator: "contains"
-        value: ".git"
-    recommendations:
-      - "Verify exposure and block HTTP access to Git metadata."
-
-  - name: "Missing X-Frame-Options"
-    category: "misconfiguration"
-    risk_score: 4.0
-    conditions:
-      - field: "description"
-        operator: "contains"
-        value: "X-Frame-Options"
-    recommendations:
-      - "Review and configure protection against framing."
-
-  - name: "Potential Telnet exposure"
-    category: "exposed_service"
-    risk_score: 7.5
-    conditions:
-      - field: "source"
-        operator: "eq"
-        value: "masscan"
-      - field: "port"
-        operator: "eq"
-        value: 23
-      - field: "protocol"
-        operator: "eq"
-        value: "tcp"
-      - field: "state"
-        operator: "eq"
-        value: "open"
-    recommendations:
-      - "Verify the service on TCP port 23 and restrict unnecessary access."
+- name: Open Telnet
+  category: unauthorized_access
+  risk_score: 9.0
+  conditions:
+  - field: service
+    operator: eq
+    value: telnet
+  recommendations:
+  - Disable Telnet and use SSH.
+- name: Potential SQL injection
+  category: data_breach
+  risk_score: 9.5
+  conditions:
+  - field: cwe
+    operator: eq
+    value: CWE-89
+  recommendations:
+  - Verify the finding and use parameterized queries.
+- name: Legacy Apache
+  category: vulnerable_component
+  risk_score: 7.5
+  conditions:
+  - field: product
+    operator: contains
+    value: apache
+  - field: version
+    operator: contains
+    value: 2.2.
+  recommendations:
+  - Verify the installed version and upgrade Apache.
+- name: Exposed Git metadata
+  category: information_disclosure
+  risk_score: 8.0
+  conditions:
+  - field: description
+    operator: contains
+    value: .git
+  recommendations:
+  - Verify exposure and block HTTP access to Git metadata.
+- name: Missing X-Frame-Options
+  category: misconfiguration
+  risk_score: 4.0
+  conditions:
+  - field: description
+    operator: contains
+    value: X-Frame-Options
+  - field: description
+    operator: contains
+    value: missing
+  recommendations:
+  - Review and configure protection against framing.
+- name: Potential Telnet exposure
+  category: exposed_service
+  risk_score: 7.5
+  conditions:
+  - field: source
+    operator: eq
+    value: masscan
+  - field: port
+    operator: eq
+    value: 23
+  - field: protocol
+    operator: eq
+    value: tcp
+  - field: state
+    operator: eq
+    value: open
+  recommendations:
+  - Verify the service on TCP port 23 and restrict unnecessary access.

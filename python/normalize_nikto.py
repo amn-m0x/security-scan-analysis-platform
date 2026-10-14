@@ -8,6 +8,20 @@ from pathlib import Path
 
 
 def normalize(data, target):
+    if isinstance(data, list):
+        if not all(isinstance(report, dict) for report in data):
+            raise ValueError("Each report must be an object.")
+
+        matching = [
+            report for report in data
+            if target in (report.get("ip"), report.get("host"))
+        ]
+
+        if len(matching) != 1:
+            raise ValueError("Expected exactly one matching report.")
+
+        data = matching[0]
+
     if not isinstance(data, dict):
         raise ValueError("Expected one JSON report object.")
 
