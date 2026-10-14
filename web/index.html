@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Scan Analysis Platform</title>
+<style>
+  body {
+    margin: 0; background: #f1f5f9; color: #172033; font: 16px/1.6 Arial, sans-serif
+  }
+  main { max-width: 1100px; margin: auto; padding: 28px }
+  h1 { margin-bottom: 4px }
+  .muted { color: #526176 }
+  .panel {
+    background: white; border: 1px solid #dce3ec; border-radius: 12px; padding: 22px; margin: 20px 0
+  }
+  button {
+    background: #2458cf; color: white; border: 0; border-radius: 6px; padding: 11px 18px; cursor: pointer
+  }
+  button:disabled { opacity: .6; cursor: wait }
+  input { max-width: 100%; margin: 10px 12px 10px 0 }
+  .metrics { display: flex; flex-wrap: wrap; gap: 12px }
+  .metric {
+    background: #edf2fa; padding: 12px 18px; border-radius: 8px
+  }
+  .table-wrap { overflow-x: auto }
+  table { width: 100%; border-collapse: collapse }
+  th, td {
+    padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere
+  }
+  th { background: #f8fafc }
+  #status { white-space: pre-wrap }
+</style>
+</head>
+<body>
+<main>
+  <h1>Security Scan Analysis Platform</h1>
+  <p class="muted">Rule-based assessment of normalized scan reports</p>
+
+  <section class="panel">
+    <h2>Analyze a report</h2>
+    <p>Select a normalized JSON report containing target and findings.</p>
+    <input id="file" type="file" accept=".json,application/json">
+    <button id="analyze">Analyze JSON</button>
+    <button id="refresh">Refresh reports</button>
+    <p id="status" role="status"></p>
+  </section>
+
+  <div id="reports"></div>
+</main>
+
+<script>
+"use strict"
+
+const statusBox = document.getElementById("status")
+const reportsBox = document.getElementById("reports")
+
+function element(tag, text, className) {
+  const node = document.createElement(tag)
+  if (text !== undefined) node.textContent = String(text)
+  if (className) node.className = className
+  return node
+}
+
+async function requestJSON(url, options) {
+  const response = await fetch(url, options)
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status + ": " + await response.text())
+  }
+  return response.json()
+}
+
+function renderReport(report) {
+  const incident = report.incident
+  const card = element("section", undefined, "panel")
+
+  card.append(element("h2", "Target: " + report.target))
+  card.append(element(
+    "p",
+    "Report: " + report.scan_id + " | Timestamp: " + report.timestamp,
+    "muted"
+  ))
+
+  const metrics = element("div", undefined, "metrics")
+  metrics.append(element(
+    "div",
+    "Rule alert: " + (incident.detected ? "Yes" : "No"),
+    "metric"
+  ))
+  metrics.append(element("div", "Risk: " + incident.risk_score, "metric"))
+  metrics.append(element("div", "Findings: " + report.findings.length, "metric"))
+  card.append(metrics)
+  card.append(element("p", "Categories: " + incident.category))
+
+  const counts = {}
+  for (const finding of report.findings) {
+    counts[finding.source] = (counts[finding.source] || 0) + 1
+  }
+  card.append(element(
+    "p",
+    "Sources: " + Object.entries(counts)
+      .map(([source, count]) => source + ": " + count).join(" | ")
+  ))
+
+  const table = element("table")
+  const head = element("thead")
+  const header = element("tr")
+  for (const label of ["Source", "Port", "Service", "Description"]) {
+    header.append(element("th", label))
+  }
+  head.append(header)
+  table.append(head)
+
+  const body = element("tbody")
+  for (const finding of report.findings) {
+    const row = element("tr")
+    for (const value of [
+      finding.source,
+      finding.port ?? "-",
+      finding.service || "-",
+      finding.description || "-"
+    ]) {
+      row.append(element("td", value))
+    }
+    body.append(row)
+  }
+  table.append(body)
+
+  const wrapper = element("div", undefined, "table-wrap")
+  wrapper.append(table)
+  card.append(wrapper)
+
+  card.append(element("h3", "Triggered rules"))
+  const rules = element("ul")
+  for (const item of incident.triggering_findings || []) {
+    rules.append(element("li", item.rule + "  risk " + item.risk_score))
+  }
+  card.append(rules)
+
+  card.append(element("h3", "Recommendations"))
+  const recommendations = element("ul")
+  for (const text of incident.recommendations || []) {
+    recommendations.append(element("li", text))
+  }
+  card.append(recommendations)
+
+  return card
+}
+
+async function refreshReports() {
+  const reports = await requestJSON("/incidents")
+  reportsBox.replaceChildren()
+  if (reports.length === 0) {
+    reportsBox.append(element("p", "No reports yet.", "panel"))
+  } else {
+    for (const report of [...reports].reverse()) {
+      reportsBox.append(renderReport(report))
+    }
+  }
+  statusBox.textContent = "Stored reports: " + reports.length
+}
+
+document.getElementById("refresh").onclick = async () => {
+  try {
+    await refreshReports()
+  } catch (error) {
+    statusBox.textContent = error.message
+  }
+}
+
+document.getElementById("analyze").onclick = async () => {
+  const button = document.getElementById("analyze")
+  const file = document.getElementById("file").files[0]
+
+  if (!file) {
+    statusBox.textContent = "Select a JSON report first."
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    statusBox.textContent = "The report must be at most 2 MiB."
+    return
+  }
+
+  button.disabled = true
+  statusBox.textContent = "Analyzing..."
+
+  try {
+    const text = await file.text()
+    JSON.parse(text)
+    await requestJSON("/analyze", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: text
+    })
+    await refreshReports()
+  } catch (error) {
+    statusBox.textContent = error.message
+  } finally {
+    button.disabled = false
+  }
+}
+
+refreshReports().catch(error => {
+  statusBox.textContent = error.message
+})
+</script>
+</body>
+</html>
+

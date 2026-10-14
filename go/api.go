@@ -137,6 +137,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/analyze", analyzeHandler)
 	mux.HandleFunc("/incidents", incidentsHandler)
+	mux.Handle("/", http.FileServer(http.Dir(filepath.Join(projectDir, "web"))))
 
 	server := &http.Server{
 		Addr:              "127.0.0.1:8080",
