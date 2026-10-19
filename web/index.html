@@ -46,6 +46,14 @@
     <p id="status" role="status"></p>
   </section>
 
+  <section class="panel">
+    <h2>Scan the local lab</h2>
+    <p>Three scanners run concurrently against the isolated lab web server.</p>
+    <label for="target">Lab target</label>
+    <input id="target" value="192.0.2.2" readonly>
+    <button id="scan">Start lab scan</button>
+    <p id="scan-status" role="status"></p>
+  </section>
   <div id="reports"></div>
 </main>
 
@@ -132,6 +140,26 @@ function renderReport(report) {
     "Sources: " + Object.entries(counts)
       .map(([source, count]) => source + ": " + count).join(" | ")
   ))
+
+  card.append(element("h3", "Finding severity distribution"))
+  const levels = ["critical", "high", "medium", "low", "info", "unknown"]
+  const severityCounts = Object.fromEntries(levels.map(level => [level, 0]))
+  for (const finding of report.findings) {
+    const level = String(finding.severity || "unknown").toLowerCase()
+    severityCounts[Object.hasOwn(severityCounts, level) ? level : "unknown"]++
+  }
+  for (const level of levels) {
+    const row = element("div")
+    row.append(element("span", level + ": " + severityCounts[level] + " "))
+    const bar = element("meter")
+    bar.min = 0
+    bar.max = Math.max(1, report.findings.length)
+    bar.value = severityCounts[level]
+    bar.setAttribute("aria-label", level + " findings")
+    row.append(bar)
+    card.append(row)
+  }
+  card.append(element("p", "Severity reflects scanner normalization; it is separate from rule risk.", "muted"))
 
   const table = element("table")
   const head = element("thead")
@@ -226,6 +254,36 @@ document.getElementById("analyze").onclick = async () => {
     await refreshReports()
   } catch (error) {
     statusBox.textContent = error.message
+  } finally {
+    button.disabled = false
+  }
+}
+
+document.getElementById("scan").onclick = async () => {
+  const button = document.getElementById("scan")
+  const box = document.getElementById("scan-status")
+  button.disabled = true
+  try {
+    const job = await requestJSON("/scan", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({target: document.getElementById("target").value})
+    })
+    box.textContent = "Scanning... job " + job.id + ". This may take several minutes."
+    const deadline = Date.now() + 10 * 60 * 1000
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const state = await requestJSON("/scan/status?id=" + encodeURIComponent(job.id))
+      if (state.status === "failed") throw new Error(state.error)
+      if (state.status === "completed") {
+        box.textContent = "Scan completed: " + state.report.findings.length + " findings."
+        await refreshReports()
+        return
+      }
+    }
+    throw new Error("Polling timed out. The server job may still be running.")
+  } catch (error) {
+    box.textContent = error.message
   } finally {
     button.disabled = false
   }

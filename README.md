@@ -459,3 +459,13 @@ only when another live Masscan lab run is needed.
   the report itself, rather than referring only to this README.
 - Analysis of the assignment's original SDL_Moskalev repository is pending
   identification of its exact URL.
+
+## Integrated live scanning
+
+The dashboard now supports starting a fixed-target lab scan through
+`POST /scan`, with progress available through `GET /scan/status?id=JOB_ID`.
+Nmap, Masscan and Nikto run concurrently in the Python runner.
+Go manages the background job.
+
+See [the live scanning guide](docs/LIVE_SCAN.md) for setup, permissions,
+execution and cleanup. The sample demo remains fixture-based.
