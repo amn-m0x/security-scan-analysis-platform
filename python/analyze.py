@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from expert_system import ExpertSystem
+from decision_tree import DecisionTreeDetector
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +49,10 @@ def main():
 
         engine = ExpertSystem(args.rules)
         incident = engine.evaluate(findings)
+        tree_result = DecisionTreeDetector().evaluate(findings)
+        tree_result["agrees_with_rules"] = (
+            tree_result["detected"] == incident["detected"]
+        )
 
         result = {
             "scan_id": scan["scan_id"],
@@ -55,6 +60,7 @@ def main():
             "target": scan["target"],
             "findings": findings,
             "incident": incident,
+            "decision_tree": tree_result,
         }
 
         args.output.parent.mkdir(parents=True, exist_ok=True)

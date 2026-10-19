@@ -91,6 +91,37 @@ function renderReport(report) {
   metrics.append(element("div", "Findings: " + report.findings.length, "metric"))
   card.append(metrics)
   card.append(element("p", "Categories: " + incident.category))
+  const tree = report.decision_tree
+
+  if (tree) {
+    const treeMetrics = element("div", undefined, "metrics")
+
+    treeMetrics.append(element(
+      "div",
+      "Tree alert: " + String(tree.detected),
+      "metric"
+    ))
+
+    treeMetrics.append(element(
+      "div",
+      "Agreement with rules: " + String(tree.agrees_with_rules),
+      "metric"
+    ))
+
+    card.append(element("h3", "Decision tree"))
+    card.append(treeMetrics)
+    card.append(element(
+      "p",
+      "Model trained on a small synthetic educational dataset.",
+      "muted"
+    ))
+  } else {
+    card.append(element(
+      "p",
+      "Decision tree result is unavailable for this report.",
+      "muted"
+    ))
+  }
 
   const counts = {}
   for (const finding of report.findings) {

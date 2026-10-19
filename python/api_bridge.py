@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from expert_system import ExpertSystem
+from decision_tree import DecisionTreeDetector
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,12 +42,17 @@ def main():
     try:
         engine = ExpertSystem(ROOT / "rules" / "rules.yaml")
         incident = engine.evaluate(findings)
+        tree_result = DecisionTreeDetector().evaluate(findings)
+        tree_result["agrees_with_rules"] = (
+            tree_result["detected"] == incident["detected"]
+        )
     except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError) as error:
         print("Engine failed:", error, file=sys.stderr)
         return 1
 
     result = dict(scan)
     result["incident"] = incident
+    result["decision_tree"] = tree_result
 
     json.dump(result, sys.stdout, ensure_ascii=False)
     sys.stdout.write("\n")
