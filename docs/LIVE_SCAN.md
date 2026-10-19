@@ -135,8 +135,11 @@ returned risk 0 and no alert; the decision tree also returned no alert.
 These results do not establish that the target is secure. Nikto messages
 remain scanner observations requiring review.
 
-The standalone CLI entry point has not yet been demonstrated separately;
-the dashboard uses the same Python runner.
+The standalone CLI entry point was also verified on 2026-10-19 using
+bash run_system.sh. All three scanners completed and produced 16 findings
+for 192.0.2.2. The rules returned risk 0 with no alert, and the decision tree
+also returned no alert. The verification printed:
+PASS: standalone live pipeline completed.
 
 ## Stop and clean up
 
