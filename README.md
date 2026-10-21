@@ -28,7 +28,7 @@ It includes a Go API, a browser dashboard and a Java rule-version manager.
 | Decision tree | Python and scikit-learn | Predict an alert using extracted features |
 | REST API | Go with a Python bridge | Analyze reports and retain recent results |
 | Dashboard | HTML, CSS and JavaScript | Upload reports and inspect both assessments |
-| Rule manager | Java with a Python validator | Snapshot, list and restore rule versions |
+| Rule manager | Java with a Python validator | Add, list, find rules; snapshot and restore versions |
 
 The normalized scan contains `scan_id`, `timestamp`, `target` and `findings`.
 Analysis adds `incident` for the rule assessment and `decision_tree` for the
@@ -129,6 +129,7 @@ training command below. Then build and start the API from the project root:
 ```bash
 mkdir -p build results
 go build -o build/api go/api.go
+go build -o build/scan_runner go/scanner/main.go
 ./build/api
 ```
 
@@ -244,7 +245,7 @@ java -cp build/java RuleManager snapshot local-demo-01
 Snapshots are stored in `rules/versions/`. Existing names are not
 overwritten. Names allow 1–64 letters, digits, hyphens or underscores,
 starting with a letter or digit. Snapshot creation copies the file and
-checks its bytes; validate the active rules separately before snapshotting.
+checks its bytes; the manager also validates rules before creating the snapshot.
 
 To restore that snapshot (this changes the active rules):
 
@@ -258,6 +259,20 @@ up existing active rules under `rules/backups/`, then atomically replaces
 The virtual environment is needed for validation. A new request is needed
 to analyze a report using changed rules; stored historical reports do not
 automatically change.
+
+### Add and find active rules
+
+```bash
+java -cp build/java RuleManager listRules
+java -cp build/java RuleManager findByCategory unauthorized_access
+java -cp build/java RuleManager add /path/to/new-rule.yaml
+```
+
+The candidate file must contain one complete rule with conditions. Addition
+is validated and atomic, with a backup. Duplicate names are rejected.
+See [the requirements completion guide](docs/REQUIREMENTS_COMPLETION.md)
+for a candidate example, command semantics, tests and the final VM checks.
+The Go collector requires Go 1.20 or newer.
 
 ## Run local live scans
 
@@ -465,8 +480,11 @@ only when another live Masscan lab run is needed.
 
 The dashboard now supports starting a fixed-target lab scan through
 `POST /scan`, with progress available through `GET /scan/status?id=JOB_ID`.
-Nmap, Masscan and Nikto run concurrently in the Python runner.
-Go manages the background job.
+Nmap, Masscan and Nikto run in three goroutines in the Go collector.
+Python calls that collector, then normalizes and analyzes its output.
+Go API manages the background HTTP job.
 
 See [the live scanning guide](docs/LIVE_SCAN.md) for setup, permissions,
 execution and cleanup. The sample demo remains fixture-based.
+
+Run `bash verify_requirements.sh` to build and test the Go collector and Java manager.

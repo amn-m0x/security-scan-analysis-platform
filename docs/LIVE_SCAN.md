@@ -3,7 +3,7 @@
 This extension adds a fixed-target live pipeline. The only target is
 `192.0.2.2`, TCP port `8000`, inside the local `masscan-lab` network namespace.
 The API rejects other targets. The three scanners run concurrently in the
-Python runner; Go starts a background job so HTTP requests do not wait for
+Go collector (one goroutine per scanner); the Go API starts a background job so HTTP requests do not wait for
 completion. This is not an arbitrary-target scanner service.
 
 ## Prerequisites
@@ -18,6 +18,8 @@ sudo apt install -y nmap masscan perl libxml-writer-perl libcap2-bin iproute2
 Nikto must exist at `~/tools/nikto/program/nikto.pl`. Use the installation
 instructions in README if needed. Build the C++ parser and train the model
 using `bash run_demo.sh` if their generated artifacts are missing.
+Build the collector with `go build -o build/scan_runner go/scanner/main.go`
+(Go 1.20+), or use `bash verify_requirements.sh`.
 
 ## Start the lab
 
@@ -66,6 +68,9 @@ limit does not cover independently started CLI processes.
 ## Build and run the API
 
 ```bash
+mkdir -p build
+go build -o build/scan_runner-next go/scanner/main.go
+mv build/scan_runner-next build/scan_runner
 go build -o build/api-next go/api.go
 ```
 
@@ -112,15 +117,15 @@ legitimately show mostly informational findings.
 
 ## Validation status
 
-Python, Bash and JavaScript syntax checks passed in the preparation
-environment. Two simulated-scanner tests verify concurrency and failure
-propagation:
+The 2026-10-21 update moves scanner concurrency to Go. The Go tests verify
+concurrent start, failure and process timeout; the Python tests verify
+that failed or incomplete collection cannot produce a successful report:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -p test_live_scan.py -v
+bash verify_requirements.sh
 ```
 
-Go compilation and a live end-to-end dashboard scan were verified in the
+Historical baseline (Python collector): Go API compilation and a live end-to-end dashboard scan were verified in the
 Ubuntu VM on 2026-10-19. All three scanners completed successfully and their
 execution intervals overlapped.
 
@@ -140,6 +145,11 @@ bash run_system.sh. All three scanners completed and produced 16 findings
 for 192.0.2.2. The rules returned risk 0 with no alert, and the decision tree
 also returned no alert. The verification printed:
 PASS: standalone live pipeline completed.
+
+The new Go collector has passed automated preparation tests; repeat the
+live VM check using `python/verify_live_report.py` before claiming that
+the updated collector has been demonstrated with real scanners. See
+[completion checks](REQUIREMENTS_COMPLETION.md).
 
 ## Stop and clean up
 

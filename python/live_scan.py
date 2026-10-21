@@ -1,5 +1,4 @@
-"""Concurrent, fixed-target lab scan. Never invokes a shell or sudo."""
-import concurrent.futures
+"""Fixed-target pipeline: Go collects concurrently, Python normalizes and analyzes."""
 import json
 import os
 from pathlib import Path
@@ -7,7 +6,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +26,7 @@ def run():
         if not shutil.which(executable):
             raise RuntimeError(f"Missing executable: {executable}")
     nikto = Path.home() / "tools/nikto/program/nikto.pl"
-    for path in (nikto, ROOT / "build/nmap_parser", ROOT / "results/decision_tree.joblib"):
+    for path in (nikto, ROOT / "build/nmap_parser", ROOT / "results/decision_tree.joblib", ROOT / "build/scan_runner"):
         if not path.is_file():
             raise RuntimeError(f"Missing prerequisite: {path}")
     # An explicit lab interface and reachable lab HTTP service are required.
@@ -43,32 +41,20 @@ def run():
         if response.status != 200:
             raise RuntimeError("Lab HTTP server is not ready.")
     folder = Path(tempfile.mkdtemp(prefix="live-", dir=ROOT / "results"))
-    specs = {
-        "nmap": ["nmap", "-sT", "-sV", "-Pn", "-p8000", "-oX", folder / "nmap.xml", TARGET],
-        "masscan": ["masscan", TARGET, "-p8000", "-e", "mc-host", "--router-mac", mac,
-                    "--rate", "10", "--wait", "5", "-oJ", folder / "masscan.json"],
-        "nikto": ["perl", nikto, "-h", f"http://{TARGET}:8000", "-Format", "json",
-                  "-o", folder / "nikto.json"],
-    }
-    def scan(name, args):
-        start = time.time()
-        try:
-            command(args, folder / f"{name}.log")
-            return {"status": "completed", "started": start, "finished": time.time()}
-        except Exception as error:
-            return {"status": "failed", "started": start, "finished": time.time(), "error": str(error)}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        tasks = {name: pool.submit(scan, name, args) for name, args in specs.items()}
-        statuses = {name: task.result() for name, task in tasks.items()}
-    (folder / "scanner_status.json").write_text(json.dumps(statuses, indent=2))
-    if any(item["status"] != "completed" for item in statuses.values()):
-        raise RuntimeError(f"One or more scanners failed. No complete assessment produced. See {folder}/scanner_status.json")
+    # Go owns the three scanner processes and their individual timeouts.
+    command([ROOT / "build/scan_runner", "--run-dir", folder],
+            folder / "collector.log", 390)
+    statuses = json.loads((folder / "scanner_status.json").read_text())
+    if set(statuses) != {"nmap", "masscan", "nikto"} or any(
+        item.get("status") != "completed" for item in statuses.values()
+    ):
+        raise RuntimeError(f"No complete assessment produced. See {folder}/scanner_status.json")
     with (folder / "nmap_parsed.json").open("wb") as output:
         subprocess.run([str(ROOT / "build/nmap_parser"), str(folder / "nmap.xml")],
                        stdout=output, check=True, timeout=30)
     python = sys.executable
     inputs = []
-    for name in specs:
+    for name in ("nmap", "masscan", "nikto"):
         raw = folder / ("nmap_parsed.json" if name == "nmap" else f"{name}.json")
         normalized = folder / f"{name}_scan.json"
         command([python, ROOT / f"python/normalize_{name}.py", raw, "--target", TARGET,
