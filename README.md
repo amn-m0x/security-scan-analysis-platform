@@ -457,8 +457,9 @@ only when another live Masscan lab run is needed.
 - Record tool versions, repository commit, commands and output screenshots
   in the final report. Include installation and execution instructions in
   the report itself, rather than referring only to this README.
-- Analysis of the assignment's original SDL_Moskalev repository is pending
-  identification of its exact URL.
+- The original SDL_Moskalev repository has been reviewed.
+  See [the source project analysis](docs/ORIGINAL_PROJECT_ANALYSIS.md)
+  for findings, comparison and limitations of the static review.
 
 ## Integrated live scanning
 
